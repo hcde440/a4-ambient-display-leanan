@@ -111,15 +111,10 @@ void loop() {
 void getSunset(){
   HTTPClient theClient;
   Serial.println("Making HTTP request");
-  // Seattle, WA Lon =  -122.3320708, Lat = 47.6062095
-  theClient.begin("http://api.sunrise-sunset.org/json?lat=47.6062095&lng=-122.3320708&date=2019-05-07"); 
+  // Seattle, WA Lon =  -122.335167, Lat = 47.608013
+  theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167"); 
   int httpCode = theClient.GET();
 
-  String sunsetTime = "";
-  String sunsetToFloat = "";
-  String dayhrs = "";
-
-/// CODE DOESNT SEEM TO BE GOING INTO THIS, WHY?
   if (httpCode > 0) {
     if (httpCode == 200) {
       Serial.println("Received HTTP payload.");
@@ -142,47 +137,15 @@ void getSunset(){
       //root.printTo(Serial);
 
       dd.sunset = root["results"]["sunset"].as<String>();   // Get's time of Sunset & stores it in variable
-      Serial.println(dd.sunset);
-      sunsetTime = dd.sunset;
-      //dd.daylngth = root["results"]["day_length"].as<String>();
-      //dayhrs = dd.daylngth;
-      //Serial.println(dd.daylngth);
+      // ex. 3:38:35 PM
+      dd.sunset.remove(4, 3); // starting from index of 4, remove 3 characters = 3:38 PM
+      Serial.println("The sun will set at: " + dd.sunset);
       
     } else {
       Serial.println("Something went wrong with connecting to the endpoint.");
     }
 
-  // CONVERTING TIME OF SUNSET TO AN INTEGER/FLOAT
-      Serial.println("-------CONVERT SUNSET TIME TO A DECIMAL HERE -----------");
-      Serial.println("FROM THE ROOT CALL, dd.sunset = " + dd.sunset);              // prints sunset time
-      sunsetToFloat = sunsetTime;             // duplicates the string
-      sunsetToFloat.replace(":", ".");        // replaces : with . to convert to a decimal
-      // ex. 3.38.35
-      sunsetToFloat.remove(4);  
-      Serial.println("Replacing : with . " + sunsetToFloat);          // prints new time with . instead of :
-      double sunsetTIME;  
-      sunsetTIME = atof(sunsetToFloat); // Converts string to a Float to use in calculations
-      Serial.println("sunsetTime = " + sunsetTime);
-     
-      Serial.println("--------------------------------------------------------");
-      Serial.println("");
-      
-     // float daylightLEFT = ((sunsetToFloat - (sunsetToFloat-1)) * 100) / 60;
-     // Serial.println("DAYLIGHT LEFT = " + String(daylightLEFT) + " hours");
   }
-
-  /*  Write code to parse sunset string and convert
-   *   1 = 13, 2 = 14, 3 = 15, 4 = 16, 5 = 17, 6 = 18, 7 = 19, 8 = 20, 9 = 21
-   *   10 = 22, 11 = 23, 12 = 24
-   *    
-   *   Calculate daylight left by taking sunset time (ex. 16:30) - current time (15:45),
-   *   multiply by 100 to get whole number and divide by 60 to get total hours left of 
-   *   daylight.
-   *   
-   *   Solution: if I can't find specific function to get current time of day, I'll use
-   *   a time that is 1 hour before sunset.
-   *   
-   */
   
 }
     
