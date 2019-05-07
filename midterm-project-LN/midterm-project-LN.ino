@@ -6,9 +6,6 @@
  *  that the LED Display Subscribes to.
  */ 
 
-
-#include <stdlib.h>
-#include <stdio.h>
 #include <ESP8266WiFi.h>        //Requisite Libraries . . .
 #include <ESP8266HTTPClient.h>  //
 #include "Wire.h"               //
@@ -28,14 +25,13 @@ WiFiClient espClient;                     //blah blah blah, espClient
 PubSubClient mqtt(espClient);             //blah blah blah, tie PubSub (mqtt)
 
 char mac[6];                              //A MAC address is a 'truly' unique ID for each device, lets use that as our 'truly' unique user ID!!!
-char message[201]; //201, as last character in the array is the NULL character, denoting the end of the array
+char message[201];                        //201, as last character in the array is the NULL character, denoting the end of the array
 
-typedef struct { 
-  String sunset;  // Variable to store Activity name as a string    
-  String daylngth;  // Variable to store Accessibility as a string
-} DaylightData;
-
-DaylightData dd;
+// Set Photocell pins
+int photocellPin = A0;     // the cell and 10K pulldown are connected to a0
+int photocellReading;     // the analog reading from the analog resistor divider
+String daylightStatus;
+String sunset;            // Variable to store Sunset Time as a string    
 
 void setup() {
   // put your setup code here, to run once:
@@ -43,12 +39,10 @@ void setup() {
   setup_wifi();
   mqtt.setServer(mqtt_server, 1883);
   mqtt.setCallback(callback);  //register the callback function
-
+  
   getSunset();
-  Serial.println("Sunset will be at " + dd.sunset);
-  // Serial.println("The total number of daylight hours will be " + dd.daylngth);
-
-
+  Serial.println("Calling getSunset..............");
+  Serial.println("Sunset will be at " + sunset);
 }
 
 /////SETUP_WIFI/////
@@ -73,7 +67,7 @@ void setup_wifi() {
 void reconnect() {
   // Loop until we're reconnected
   while (!mqtt.connected()) {
-    Serial.print("Attempting MQTT connection...");
+    Serial.println("Attempting MQTT connection...");
     if (mqtt.connect(mac, mqtt_user, mqtt_password)) { //<<---using MAC as client ID, always unique!!!
       Serial.println("connected");
       mqtt.subscribe("fromDaylight/+"); // fromDaylight (sensors) to Bookworm (LED display) we are subscribing to 'theTopic' and all subtopics below that topic
@@ -87,32 +81,46 @@ void reconnect() {
   }
 }
 
-
-
-void loop() {
-  // put your main code here, to run repeatedly:
-  
-  if (!mqtt.connected()) {
-    reconnect();
+void loop(void) {
+  photocellReading = analogRead(photocellPin);  
+ 
+  Serial.print("Analog reading = ");
+  Serial.print(photocellReading); // the raw analog reading
+ 
+  // We'll have a few threshholds, qualitatively determined
+  if (photocellReading < 10) {
+    daylightStatus = "Dark";
+  } else if (photocellReading < 200) {
+    daylightStatus = "Dim";
+  } else if (photocellReading < 500) {
+    daylightStatus = "Light";
+  } else if (photocellReading < 800) {
+    daylightStatus = "Bright";
+  } else {
+    daylightStatus = "Very Bright";
   }
 
-  mqtt.loop(); //this keeps the mqtt connection 'active'
+  Serial.print(" - " + daylightStatus);
+  Serial.println();
+  delay(1000);
 
-  // how to PUBLISH
-  // Publish message to the  topic 
-  
-  // EDIT MESSAGE BELOW TO DISPLAY HOW MUCH DAYLIGHT LEFT
-  // sprintf(message, "{\"Temperature\":\"%s\", \"Humidity\":\"%s\", \"Pressure\":\"%s\"}", str_temp, str_hum, pressure); //JSON format using {"XX":"XX"}
-  // mqtt.publish("fromDaylight/hrsdl", message);
-  
+   if (!mqtt.connected()) {
+    reconnect();
+  }
+  mqtt.loop(); //this keeps the mqtt connection 'active'
 }
 
-//// USING SUNSET API TO GET DAYLIGHT HOURS LEFT ////
 void getSunset(){
+  String app_id = "hLftmCervHCDDpByuCzH";
+  String app_code = "hrp__SEMV7xB3locGcnAew";
+  
   HTTPClient theClient;
   Serial.println("Making HTTP request");
   // Seattle, WA Lon =  -122.335167, Lat = 47.608013
-  theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167"); 
+  // theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167");
+  
+  theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=hLftmCervHCDDpByuCzH&app_code=hrp__SEMV7xB3locGcnAew&product=forecast_astronomy&name=Seattle");
+  //theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=" + app_id + "&app_code=" + app_code + "&product=forecast_astronomy&name=Seattle");
   int httpCode = theClient.GET();
 
   if (httpCode > 0) {
@@ -133,29 +141,24 @@ void getSunset(){
       } 
 
       //Some debugging lines below:
-      //Serial.println(payload);
-      //root.printTo(Serial);
+      Serial.println(payload);
+      root.printTo(Serial);
 
-      dd.sunset = root["results"]["sunset"].as<String>();   // Get's time of Sunset & stores it in variable
-      // ex. 3:38:35 PM
-      dd.sunset.remove(4, 3); // starting from index of 4, remove 3 characters = 3:38 PM
-      Serial.println("The sun will set at: " + dd.sunset);
+      // KEEP
+      //dd.sunset = root["results"]["sunset"].as<String>();   // Get's time of Sunset & stores it in variable
+      //// ex. 3:38:35 PM
+      //dd.sunset.remove(4, 3); // starting from index of 4, remove 3 characters = 3:38 PM
+      //Serial.println("The sun will set at: " + dd.sunset);
+
+      sunset = root["astronomy"][0]["sunset"].as<String>();
+      Serial.println("Hi, this is when the sun will set in Seattle: " + sunset);
       
     } else {
       Serial.println("Something went wrong with connecting to the endpoint.");
     }
-
-  }
-  
+  }  
 }
-    
 
-/////CALLBACK/////
-//The callback is where we attach a listener to the incoming messages from the server.
-//By subscribing to a specific channel or topic, we can listen to those topics we wish to hear.
-//We place the callback in a separate tab so we can edit it easier . . . (will not appear in separate
-//tab on github!)
-/////
 
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println();
