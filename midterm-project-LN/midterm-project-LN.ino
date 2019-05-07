@@ -117,11 +117,14 @@ void getSunset(){
   HTTPClient theClient;
   Serial.println("Making HTTP request");
   // Seattle, WA Lon =  -122.335167, Lat = 47.608013
-  // theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167");
+  theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167&formatted=0");
   
-  theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=hLftmCervHCDDpByuCzH&app_code=hrp__SEMV7xB3locGcnAew&product=forecast_astronomy&name=Seattle");
+  //theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=hLftmCervHCDDpByuCzH&app_code=hrp__SEMV7xB3locGcnAew&product=forecast_astronomy&name=Seattle");
   //theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=" + app_id + "&app_code=" + app_code + "&product=forecast_astronomy&name=Seattle");
   int httpCode = theClient.GET();
+
+  String hr;
+  String minute;
 
   if (httpCode > 0) {
     if (httpCode == 200) {
@@ -144,14 +147,28 @@ void getSunset(){
       Serial.println(payload);
       root.printTo(Serial);
 
-      // KEEP
-      //dd.sunset = root["results"]["sunset"].as<String>();   // Get's time of Sunset & stores it in variable
-      //// ex. 3:38:35 PM
-      //dd.sunset.remove(4, 3); // starting from index of 4, remove 3 characters = 3:38 PM
-      //Serial.println("The sun will set at: " + dd.sunset);
+      sunset = root["results"]["sunset"].as<String>();   // Get's time of Sunset & stores it in variable
+      // ex. 2015-05-21T19:22:59+00:00"
+      sunset = sunset.substring(11, 16); ; // remove characters up to index 10 -> 19:22:59+00:00 (hh:mm:ss)
+      // Gets time in UTC, not PST. UTC is 7 hours ahead.
+      hr = sunset.substring(0, 2);
+      minute = sunset.substring(3);
 
-      sunset = root["astronomy"][0]["sunset"].as<String>();
-      Serial.println("Hi, this is when the sun will set in Seattle: " + sunset);
+      convertPST = hr.toInt();
+      Serial.println("THIS IS THE CONVERSION " +convertPST);
+      
+      if (convertPST - 7 < 0) {
+        convertPST = 12 + (convertPST - 7);
+        // DEBUG 
+        Serial.println("PST hour is: " + convertPST);
+        
+        Serial.println("The sun will set at: " + convertPST + "PST");
+      } else {
+        Serial.println("The sun will set at: " + convertPST + "PST");
+      }
+
+//      sunset = root["astronomy"][0]["sunset"].as<String>();
+//      Serial.println("Hi, this is when the sun will set in Seattle: " + sunset);
       
     } else {
       Serial.println("Something went wrong with connecting to the endpoint.");
