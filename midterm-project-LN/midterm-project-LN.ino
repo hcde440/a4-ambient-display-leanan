@@ -13,8 +13,8 @@
 #include <ArduinoJson.h>        //
 
 ////// Wifi /////
-#define wifi_ssid "APT301"  
-#define wifi_password "dslrapt301" 
+#define wifi_ssid "CenturyLink9725"  
+#define wifi_password "qa4dbnja7w4giw" 
 
 ///// MQTT server /////
 #define mqtt_server "mediatedspaces.net"  //this is its address, unique to the server
@@ -47,7 +47,7 @@ void setup() {
   Serial.println("+++++++++++++++++++++++++++++++++++++++++++++++");
   Serial.println("Sunset will be at " + sunset);
   Serial.println("+++++++++++++++++++++++++++++++++++++++++++++++");
-    Serial.println();
+  Serial.println();
 }
 
 /////SETUP_WIFI/////
@@ -89,8 +89,8 @@ void reconnect() {
 void loop(void) {
   photocellReading = analogRead(photocellPin);  
  
-  Serial.print("Analog reading = ");
-  Serial.print(photocellReading); // the raw analog reading
+  //Serial.print("Analog reading = ");
+ // Serial.print(photocellReading); // the raw analog reading
  
   // We'll have a few threshholds, qualitatively determined
   if (photocellReading < 10) {
@@ -105,14 +105,25 @@ void loop(void) {
     daylightStatus = "Very Bright";
   }
 
-  Serial.print(" - " + daylightStatus);
-  Serial.println();
+  //Serial.print(" - " + daylightStatus);
+  //Serial.println();
   delay(1000);
 
    if (!mqtt.connected()) {
     reconnect();
   }
   mqtt.loop(); //this keeps the mqtt connection 'active'
+
+
+  // Publish message to the tem/hum topic 
+
+ 
+  sprintf(message, "{\"Sunset\":\"%s\",\"Daylight Status\":\"%s\"}", sunset.c_str(), daylightStatus.c_str()); //JSON format using {"XX":"XX"}  
+  mqtt.publish("fromDaylight/sunstatus", message);
+//  Serial.println("+++++++++++++++++++++++++++++++++++++++++++++++++");
+//  Serial.println("PRINTING SUNSET HERE: " + sunset);
+//  Serial.println("PRINTING DAYLIGHTSTATUS HERE: " + daylightStatus);
+  
 }
 
 void getSunset(){
@@ -123,9 +134,6 @@ void getSunset(){
   Serial.println("Making HTTP request");
   // Seattle, WA Lon =  -122.335167, Lat = 47.608013
   theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167&formatted=0");
-  
-  //theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=hLftmCervHCDDpByuCzH&app_code=hrp__SEMV7xB3locGcnAew&product=forecast_astronomy&name=Seattle");
-  //theClient.begin("http://weather.api.here.com/weather/1.0/report.json?app_id=" + app_id + "&app_code=" + app_code + "&product=forecast_astronomy&name=Seattle");
   int httpCode = theClient.GET();
 
   String hr;
@@ -205,7 +213,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.println("A message from Batman . . .");
   }
 
-  else if (strcmp(topic, "fromDaylight/tempHum") == 0) {
+  else if (strcmp(topic, "fromDaylight/sunstatus") == 0) {
     Serial.println("Some weather info has arrived . . .");
   }
 
