@@ -41,8 +41,13 @@ void setup() {
   mqtt.setCallback(callback);  //register the callback function
   
   getSunset();
-  Serial.println("Calling getSunset..............");
+  //Serial.println("Calling getSunset..............");
+
+  Serial.println();
+  Serial.println("+++++++++++++++++++++++++++++++++++++++++++++++");
   Serial.println("Sunset will be at " + sunset);
+  Serial.println("+++++++++++++++++++++++++++++++++++++++++++++++");
+    Serial.println();
 }
 
 /////SETUP_WIFI/////
@@ -144,31 +149,30 @@ void getSunset(){
       } 
 
       //Some debugging lines below:
-      Serial.println(payload);
-      root.printTo(Serial);
+      //Serial.println(payload);
+      //root.printTo(Serial);
 
       sunset = root["results"]["sunset"].as<String>();   // Get's time of Sunset & stores it in variable
       // ex. 2015-05-21T19:22:59+00:00"
       sunset = sunset.substring(11, 16); ; // remove characters up to index 10 -> 19:22:59+00:00 (hh:mm:ss)
+      
       // Gets time in UTC, not PST. UTC is 7 hours ahead.
       hr = sunset.substring(0, 2);
       minute = sunset.substring(3);
 
+      int convertPST;
       convertPST = hr.toInt();
-      Serial.println("THIS IS THE CONVERSION " +convertPST);
+      //Serial.println("THIS IS THE CONVERSION " + convertPST);
       
       if (convertPST - 7 < 0) {
         convertPST = 12 + (convertPST - 7);
         // DEBUG 
-        Serial.println("PST hour is: " + convertPST);
-        
-        Serial.println("The sun will set at: " + convertPST + "PST");
+        //Serial.println("PST hour is: " + convertPST);
+        sunset = String(convertPST) + ":" + minute + "PM";
       } else {
-        Serial.println("The sun will set at: " + convertPST + "PST");
+        sunset = hr + ":" + minute + "PM";
       }
-
-//      sunset = root["astronomy"][0]["sunset"].as<String>();
-//      Serial.println("Hi, this is when the sun will set in Seattle: " + sunset);
+        //Serial.println("The sun will set at: " + sunset + "PM PST");
       
     } else {
       Serial.println("Something went wrong with connecting to the endpoint.");
