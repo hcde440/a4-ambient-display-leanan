@@ -13,8 +13,8 @@
 #include <ArduinoJson.h>        //
 
 ////// Wifi /////
-#define wifi_ssid "CenturyLink9725"  
-#define wifi_password "qa4dbnja7w4giw" 
+#define wifi_ssid "University of Washington"  
+#define wifi_password "" 
 
 ///// MQTT server /////
 #define mqtt_server "mediatedspaces.net"  //this is its address, unique to the server

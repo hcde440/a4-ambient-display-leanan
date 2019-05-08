@@ -1,20 +1,28 @@
+/*  Leana Nakkour
+ *  HCDE 440: Midterm Mini Project
+ *  May 7, 2019
+ * 
+ *  Subscriber code; Sunset API and Light Sensor (Photocell) communicate to MQTT server
+ *  that the LED Display Subscribes to.
+ */ 
+
 // Recieving  messages are in the JSON format. 
 
 //Including libraries for Photocell, JSON and MQTT
-#include <Wire.h>
-#include <SPI.h>
-#include <PubSubClient.h>   
-#include <ArduinoJson.h>    
-#include <ESP8266WiFi.h> 
-#include <Adafruit_Sensor.h>
+#include <Wire.h>            // Necessary Libraries for Light sensor and MQTT server
+#include <SPI.h>             //
+#include <PubSubClient.h>    //
+#include <ArduinoJson.h>     //
+#include <ESP8266WiFi.h>     //
+#include <Adafruit_Sensor.h> //
 
 #define mqtt_server "mediatedspaces.net"  //this is its address, unique to the server
 #define mqtt_user "hcdeiot"               //this is its server login, unique to the server
 #define mqtt_password "esp8266"           //this is it server password, unique to the server
 
 ////// Wifi /////
-#define wifi_ssid "CenturyLink9725"  
-#define wifi_password "qa4dbnja7w4giw" 
+#define wifi_ssid "University of Washington"  
+#define wifi_password "" 
 
 WiFiClient espClient;             // espClient
 PubSubClient mqtt(espClient);     // tie PubSub (mqtt) client to WiFi client
@@ -73,7 +81,9 @@ void loop() {
   mqtt.loop(); //this keeps the mqtt connection 'active'
   // Serial.println("Daylight Status: " + light_status);
 
-  // set the brightness of pin 9:
+  // Receives the message from the Light Sensor via the MQTT server
+  // Reads the light status and if it is "Dim" (low lighting registered)
+  // then the LEDs will begin to fade
   if (light_status == "Dim") {
        analogWrite(led, brightness);
 
@@ -88,7 +98,7 @@ void loop() {
        // wait for 30 milliseconds to see the dimming effect
         delay(30);
   } else {
-      analogWrite(led, LOW);
+      analogWrite(led, LOW);    // Turns off LED/Keeps it off
   }
   
 }
@@ -131,12 +141,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
   DynamicJsonBuffer  jsonBuffer; //blah blah blah a DJB
   JsonObject& root = jsonBuffer.parseObject(payload); //parse it!
 
+  // Receives the light sensor data and stores it in a variable light_status
   if (String(topic) == "fromDaylight/sunstatus") {
     Serial.println("printing message");
     Serial.print("Message arrived in topic: ");
     String daylight_status = root["Daylight Status"];
     // debug
-    Serial.println(daylight_status);
+    // Serial.println(daylight_status);
     light_status = String(daylight_status);
 
  }
