@@ -87,12 +87,15 @@ void reconnect() {
 }
 
 void loop(void) {
-  photocellReading = analogRead(photocellPin);  
- 
+  photocellReading = analogRead(photocellPin);  // Reads the light sensor data and stores it (int)
+
+  // Debugging
   //Serial.print("Analog reading = ");
- // Serial.print(photocellReading); // the raw analog reading
- 
-  // We'll have a few threshholds, qualitatively determined
+  // Serial.print(photocellReading); // the raw analog reading
+  
+  // Conditional statements to interpret numerical data received from light sensor
+  // A string interpretting the light status of the room (ex: "Dim") will be stored
+  // in a variable daylightStatus to be published over the MQTT server
   if (photocellReading < 10) {
     daylightStatus = "Dark";
   } else if (photocellReading < 200) {
@@ -107,6 +110,7 @@ void loop(void) {
 
   //Serial.print(" - " + daylightStatus);
   //Serial.println();
+  // 1 second delay in between 
   delay(1000);
 
    if (!mqtt.connected()) {
@@ -127,8 +131,8 @@ void loop(void) {
 }
 
 void getSunset(){
-  String app_id = "hLftmCervHCDDpByuCzH";
-  String app_code = "hrp__SEMV7xB3locGcnAew";
+  // Sunset API that takes in Lon and Lat of an area and 
+  // returns a JSON of what time the sun will set in that area
   
   HTTPClient theClient;
   Serial.println("Making HTTP request");
@@ -136,8 +140,8 @@ void getSunset(){
   theClient.begin("http://api.sunrise-sunset.org/json?lat=47.608013&lng=-122.335167&formatted=0");
   int httpCode = theClient.GET();
 
-  String hr;
-  String minute;
+  String hr;        // string to store the hour of the day when sun sets
+  String minute;    // string to store the minute of the day when sun sets
 
   if (httpCode > 0) {
     if (httpCode == 200) {
@@ -164,23 +168,29 @@ void getSunset(){
       // ex. 2015-05-21T19:22:59+00:00"
       sunset = sunset.substring(11, 16); ; // remove characters up to index 10 -> 19:22:59+00:00 (hh:mm:ss)
       
-      // Gets time in UTC, not PST. UTC is 7 hours ahead.
+      // uses substring to get the hour and minute of sunset from the string returned
       hr = sunset.substring(0, 2);
       minute = sunset.substring(3);
 
+      // API returnes the date and time in UTC, not PST. UTC is 7 hours ahead
+      // so the following lines are to convert that time to PST
       int convertPST;
       convertPST = hr.toInt();
       //Serial.println("THIS IS THE CONVERSION " + convertPST);
       
       if (convertPST - 7 < 0) {
         convertPST = 12 + (convertPST - 7);
+        
         // DEBUG 
         //Serial.println("PST hour is: " + convertPST);
-        sunset = String(convertPST) + ":" + minute + "PM";
+        
+        // stores sunset time in variable to be published on MQTT server
+        sunset = String(convertPST) + ":" + minute + "PM";  
       } else {
+
+        // stores sunset time in variable to be published on MQTT server
         sunset = hr + ":" + minute + "PM";
       }
-        //Serial.println("The sun will set at: " + sunset + "PM PST");
       
     } else {
       Serial.println("Something went wrong with connecting to the endpoint.");
